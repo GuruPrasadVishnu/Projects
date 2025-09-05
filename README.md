@@ -31,14 +31,6 @@ This project follows a layered approach to infrastructure as code:
 - IAM policies for secure access
 - Public access blocking and lifecycle policies
 
-**Key Features**:
-- AWS KMS encryption for state files
-- DynamoDB on-demand pricing for cost optimization
-- Versioning enabled for rollback capabilities
-- Proper IAM access controls
-
-**Cost**: ~$1-2/month for small projects
-
 ### 01-VPC - Network Infrastructure
 
 **Purpose**: Creates a production-ready VPC foundation for AWS workloads.
@@ -53,14 +45,6 @@ This project follows a layered approach to infrastructure as code:
 - Route tables and security groups
 - EKS-compatible subnet tagging
 
-**Key Features**:
-- Multi-AZ high availability design
-- Private subnets for secure workloads
-- Single NAT Gateway for cost optimization
-- DNS hostname support enabled
-- Ready for EKS deployment
-
-**Cost**: ~$45/month (primarily NAT Gateway)
 
 ### 02-EKS - Kubernetes Cluster
 
@@ -73,11 +57,4 @@ This project follows a layered approach to infrastructure as code:
 - Security groups for cluster access
 - CloudWatch logging for control plane
 
-**Key Features**:
-- Simplified setup without complex add-ons
-- Managed node groups for easier maintenance  
-- Private networking for security
-- CloudWatch integration for monitoring
-- Cost-optimized instance sizing
 
-**Cost**: ~$190/month total (EKS control plane + nodes + networking)
