@@ -43,6 +43,6 @@ terraform apply
 terraform destroy
 ```
 
-## Note
+### Note
 
 This VPC is configured with EKS in mind and includes all necessary tagging for Kubernetes integration.
