@@ -1,5 +1,6 @@
-# Phase 1: Basic Network Setup
+# Terraform Configuration for VPC Setup
 
+# Adding Backend as S3 for Remote State Storage and DynamoDB for State Locking
 terraform {
   backend "s3" {
     bucket         = "guru-terraform-state-dev-1"
@@ -10,6 +11,7 @@ terraform {
   }
 }
 
+# Setting up AWS Provider
 provider "aws" {
   region = var.region
 }
@@ -18,7 +20,7 @@ locals {
   # Starting with 2 AZs to keep costs down
   azs = ["us-west-2a", "us-west-2b"]
   
-  # Basic tags - we'll expand these as we grow
+  # common tags for all resources
   common_tags = {
     Project     = "ms-platform"
     Environment = var.environment
