@@ -3,13 +3,13 @@
 This repository contains a progressive set of Terraform configurations for building AWS infrastructure, from foundational remote state management to a complete EKS cluster setup.
 
 ## Project Structure
-
+```
 Projects/
 ├── 00-S3 creation/     # Remote state infrastructure (foundation)
 ├── 01-VPC/             # VPC infrastructure module
 ├── 02-EKS/             # EKS cluster on VPC infrastructure
 └── README.md           # This file
-
+```
 
 ## Architecture Overview
 
