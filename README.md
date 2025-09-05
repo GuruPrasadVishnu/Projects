@@ -4,13 +4,12 @@ This repository contains a progressive set of Terraform configurations for build
 
 ## Project Structure
 
-`
 Projects/
-├ 00-S3 creation/     # Remote state infrastructure (foundation)
- 01-VPC/             # VPC infrastructure module
- 02-EKS/             # EKS cluster on VPC infrastructure
- README.md           # This file
-`
+├── 00-S3 creation/     # Remote state infrastructure (foundation)
+├── 01-VPC/             # VPC infrastructure module
+├── 02-EKS/             # EKS cluster on VPC infrastructure
+└── README.md           # This file
+
 
 ## Architecture Overview
 
