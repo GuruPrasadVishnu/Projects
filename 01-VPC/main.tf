@@ -1,5 +1,10 @@
 # Terraform Configuration for VPC Setup
 
+# Setting up AWS Provider
+provider "aws" {
+  region = var.region
+}
+
 # Adding Backend as S3 for Remote State Storage and DynamoDB for State Locking
 terraform {
   backend "s3" {
@@ -9,11 +14,6 @@ terraform {
     dynamodb_table = "terraform-locks-dev"
     encrypt        = true
   }
-}
-
-# Setting up AWS Provider
-provider "aws" {
-  region = var.region
 }
 
 locals {
