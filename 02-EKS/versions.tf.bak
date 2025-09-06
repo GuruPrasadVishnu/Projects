@@ -22,7 +22,7 @@ terraform {
       version = "~> 3.0"
     }
   }
-
+}
   # Backend configuration for remote state
   backend "s3" {
     bucket         = "guru-terraform-state-dev-1"
@@ -31,4 +31,3 @@ terraform {
     dynamodb_table = "terraform-locks-dev"
     encrypt        = true
   }
-}

@@ -1,0 +1,26 @@
+# Example terraform.tfvars file for EKS Cluster Autoscaler
+# Copy this to terraform.tfvars and adjust values as needed
+
+region      = "us-west-2"
+environment = "dev"
+
+# Autoscaler Helm chart version - check for latest stable
+autoscaler_chart_version = "9.29.0"
+
+# Scaling behavior - adjust based on your workload patterns
+scale_down_delay_after_add = "10m"   # Conservative for dev, consider 30m+ for prod
+scale_down_unneeded_time   = "10m"   # How long before removing unneeded nodes
+max_node_provision_time    = "15m"   # Max time to wait for new nodes
+
+# Resource limits for the autoscaler pod
+autoscaler_cpu_limit    = "100m"
+autoscaler_memory_limit = "300Mi"
+
+# Scaling preferences
+enable_scale_down = true
+expander_type     = "least-waste"  # Options: least-waste, most-pods, priority, random
+
+# TODO: In production, you might want:
+# - expander_type = "priority" with node group priorities defined
+# - longer scale-down times to avoid thrashing
+# - higher resource limits if managing large clusters

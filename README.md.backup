@@ -1,0 +1,311 @@
+# AWS Infrastructure Projects - Modular Architecture
+
+This repository contains a progressive set of Terraform configurations for building AWS infrastructure using a modular, layered approach. Each layer builds upon the previous one using remote state sharing for clean separation of concerns.
+
+## Project Structure
+
+```
+Projects/
+├── 00-S3 creation/           # Remote state infrastructure (foundation)
+├── 01-VPC/                   # VPC infrastructure module
+├── 02-EKS/                   # EKS cluster consuming VPC via remote state
+├── README.md                 # This file
+
+```
+
+## Modular Architecture Overview
+
+This project follows a **layered, modular approach** to infrastructure as code:
+
+1. **Foundation Layer** (`00-S3 creation`) - Remote state management
+2. **Network Layer** (`01-VPC`) - Shared VPC infrastructure  
+3. **Compute Layer** (`02-EKS`) - EKS cluster consuming network layer via remote state
+
+### Key Benefits of This Approach
+
+- **Separation of Concerns**: Each layer has a single responsibility
+- **Resource Reuse**: VPC can be shared across multiple services
+- **Independent Lifecycles**: Destroy/recreate EKS without affecting networking
+- **Smaller State Files**: Better performance and reduced blast radius
+- **Team Collaboration**: Different teams can own different layers
+
+## Remote State Sharing Pattern
+
+The `02-EKS` layer consumes VPC outputs from `01-VPC` using Terraform remote state:
+
+```hcl
+# In 02-EKS/vpc-data.tf
+data "terraform_remote_state" "vpc" {
+  backend = "s3"
+  config = {
+    bucket = "guru-terraform-state-dev-1"
+    key    = "vpc/terraform.tfstate"
+    region = "us-west-2"
+  }
+}
+
+locals {
+  vpc_id             = data.terraform_remote_state.vpc.outputs.vpc_id
+  private_subnet_ids = data.terraform_remote_state.vpc.outputs.private_subnet_ids
+  public_subnet_ids  = data.terraform_remote_state.vpc.outputs.public_subnet_ids
+  nat_public_ips     = data.terraform_remote_state.vpc.outputs.nat_public_ips
+}
+```
+
+## Project Details
+
+### 00-S3 Creation - Remote State Infrastructure
+
+**Purpose**: Sets up secure remote state management for all subsequent Terraform projects.
+
+**What it creates**:
+- S3 bucket with versioning and encryption for state storage
+- DynamoDB table for state locking
+- IAM policies for secure access
+- Public access blocking and lifecycle policies
+
+**Key Features**:
+- AWS KMS encryption for state files
+- DynamoDB on-demand pricing for cost optimization
+- Versioning enabled for rollback capabilities
+- Proper IAM access controls
+
+**Cost**: ~$1-2/month for small projects
+
+### 01-VPC - Shared Network Infrastructure
+
+**Purpose**: Creates a reusable VPC foundation that can be shared across multiple services.
+
+**What it creates**:
+- VPC with 10.20.0.0/16 CIDR block
+- 2 Availability Zones (us-west-2a/b)
+- 2 Private subnets (10.20.1.0/24, 10.20.2.0/24)
+- 2 Public subnets (10.20.101.0/24, 10.20.102.0/24)  
+- Single NAT Gateway (cost-optimized)
+- Internet Gateway
+- Route tables and security groups
+- EKS-compatible subnet tagging
+
+**Key Features**:
+- **Shared Infrastructure**: Can support multiple services (EKS, RDS, ALB, etc.)
+- Multi-AZ high availability design
+- Cost-optimized with single NAT Gateway
+- DNS hostname support enabled
+- Comprehensive outputs for consumption by other layers
+
+**Cost**: ~$45/month (primarily NAT Gateway)
+
+**State Location**: `s3://guru-terraform-state-dev-1/vpc/terraform.tfstate`
+
+### 02-EKS - Kubernetes Cluster (Modular)
+
+**Purpose**: Deploys EKS cluster that consumes shared VPC infrastructure via remote state.
+
+**What it creates**:
+- Managed EKS cluster (Kubernetes 1.33)
+- Managed node group with 2 t3.medium instances
+- IAM roles for cluster and worker nodes
+- Security groups for cluster access
+- CloudWatch logging for control plane
+
+**Key Features**:
+- **Modular Design**: Consumes VPC via remote state, no duplicate networking
+- **Independent Lifecycle**: Can be destroyed/recreated without affecting VPC
+- Simplified setup without complex add-ons
+- Private networking for security
+- CloudWatch integration for monitoring
+
+**Dependencies**: 
+- Requires `01-VPC` to be deployed first
+- Reads VPC outputs via remote state
+
+**Cost**: ~$145/month (EKS control plane + nodes, VPC costs separate)
+
+**State Location**: `s3://guru-terraform-state-dev-1/eks/terraform.tfstate`
+
+## Getting Started
+
+### Prerequisites
+
+- AWS CLI v2.x+ configured with appropriate permissions
+- Terraform >= 1.0
+- kubectl >= 1.27 (for EKS project)
+
+### Deployment Order
+
+**Critical**: These projects must be deployed in strict sequence due to remote state dependencies.
+
+#### 1. Deploy Remote State Infrastructure
+
+```bash
+cd "00-S3 creation"
+terraform init
+terraform plan
+terraform apply
+```
+
+#### 2. Deploy Shared VPC Infrastructure
+
+```bash
+cd "../01-VPC" 
+terraform init
+terraform plan
+terraform apply
+
+# Verify outputs are available
+terraform output
+```
+
+#### 3. Deploy EKS Cluster (Modular)
+
+```bash
+cd "../02-EKS"
+terraform init  
+terraform plan
+terraform apply
+
+# Configure kubectl
+aws eks update-kubeconfig --region us-west-2 --name ms-platform-eks
+kubectl get nodes
+```
+
+### Validation
+
+Verify the modular architecture is working:
+
+```bash
+# Check VPC remote state access
+cd 02-EKS
+terraform console
+> data.terraform_remote_state.vpc.outputs
+
+# Verify no duplicate VPC resources in EKS state
+terraform state list | grep -v "aws_vpc\|aws_subnet\|aws_internet_gateway"
+```
+
+## Design Philosophy
+
+### Modular Architecture Principles
+- **Single Responsibility**: Each layer has one clear purpose
+- **Loose Coupling**: Layers communicate only through well-defined outputs
+- **High Cohesion**: Related resources are grouped together
+- **Resource Reuse**: Shared infrastructure reduces costs and complexity
+
+### Cost Optimization
+- Single NAT Gateway shared across all services (saves ~$45/month per service)
+- No duplicate networking resources
+- t3.medium instances for balanced cost/performance
+- Managed services to reduce operational overhead
+
+### Security Best Practices
+- Private subnets for all compute workloads
+- No public access to state files
+- Encryption at rest for state storage
+- Minimal IAM permissions with layer-specific access
+
+### Operational Excellence
+- Clear dependency management through remote state
+- Independent deployment and rollback capabilities
+- Smaller state files for better performance
+- Comprehensive documentation and outputs
+
+## State File Architecture
+
+```
+S3 Bucket: guru-terraform-state-dev-1
+├── vpc/terraform.tfstate          # VPC infrastructure (shared)
+├── eks/terraform.tfstate          # EKS cluster (modular)
+└── <future>/terraform.tfstate     # Additional services
+```
+
+## Cost Breakdown (Modular)
+
+| Component | Monthly Cost (USD) | Layer | Notes |
+|-----------|-------------------|-------|-------|
+| S3 + DynamoDB | $1-2 | Foundation | State storage |
+| **VPC + NAT Gateway** | **$45** | **Network** | **Shared across services** |
+| EKS Control Plane | $73 | Compute | Fixed EKS cost |
+| 2x t3.medium nodes | $60 | Compute | Variable based on usage |
+| EBS volumes | $10 | Compute | 20GB per node |
+| **Total** | **~$190** | **All** | **Same cost, better architecture** |
+
+*Note: The modular approach maintains the same costs while providing better architecture and reusability.*
+
+## Cleanup (Reverse Order)
+
+To avoid dependency issues, destroy in reverse order:
+
+```bash
+# 1. Destroy EKS cluster first
+cd "02-EKS"
+terraform destroy
+
+# 2. Destroy shared VPC (affects all dependent services)
+cd "../01-VPC"  
+terraform destroy
+
+# 3. Finally, destroy remote state (optional)
+cd "../00-S3 creation"
+terraform destroy
+```
+
+## Next Steps - Extending the Modular Architecture
+
+The modular foundation is ready for additional services:
+
+### Immediate Extensions
+- **Database Layer** (`03-RDS`): Use VPC private subnets
+- **Application Layer** (`04-Apps`): Reference EKS outputs
+- **Load Balancer** (`05-ALB`): Use VPC public subnets
+
+### Advanced Extensions
+- **Monitoring Stack** (`06-Monitoring`): Prometheus, Grafana, CloudWatch
+- **Security Layer** (`07-Security`): WAF, GuardDuty, Config Rules
+- **CI/CD Pipeline** (`08-Pipeline`): GitOps with ArgoCD
+
+### Example Future Structure
+```
+Projects/
+├── 00-S3 creation/     # Foundation
+├── 01-VPC/             # Shared networking
+├── 02-EKS/             # Kubernetes platform
+├── 03-RDS/             # Database (uses VPC)
+├── 04-Apps/            # Applications (uses EKS)
+├── 05-Monitoring/      # Observability (uses EKS + VPC)
+└── 06-Security/        # Security services (uses all)
+```
+
+## Troubleshooting
+
+### Common Issues
+1. **Remote state not found**: Ensure previous layers are deployed
+2. **VPC dependency errors**: Verify `01-VPC` outputs are available
+3. **Permission issues**: Check IAM access to S3 bucket and DynamoDB
+
+### Debug Commands
+```bash
+# Check VPC state availability
+aws s3 ls s3://guru-terraform-state-dev-1/vpc/
+
+# Verify remote state access
+cd 02-EKS
+terraform plan | grep "data.terraform_remote_state.vpc"
+
+# Show dependency graph
+terraform graph | grep -E "(vpc|subnet)"
+```
+
+## Documentation
+
+- **[MODULARIZATION_SUMMARY.md](./MODULARIZATION_SUMMARY.md)**: Technical details of the modular transformation
+- **Individual README files**: Each layer has specific deployment instructions
+
+## Contributing
+
+When adding new layers:
+1. Follow the remote state pattern established by `02-EKS`
+2. Document all outputs that other layers might need
+3. Update this README with the new layer information
+4. Maintain the dependency order in deployment instructions
+
+This modular architecture provides a solid foundation for scaling your AWS infrastructure while maintaining clean separation of concerns and operational excellence.
