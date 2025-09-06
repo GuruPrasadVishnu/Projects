@@ -1,3 +1,6 @@
+# This module depends on the VPC infrastructure from 01-VPC
+# It uses terraform remote state to access VPC outputs
+
 variable "region" {
   description = "AWS region"
   type        = string
@@ -10,6 +13,7 @@ variable "environment" {
   default     = "dev"  # Using dev as default to prevent accidents
 }
 
+# EKS Configuration
 variable "kubernetes_version" {
   description = "Kubernetes version to use for EKS cluster"
   type        = string

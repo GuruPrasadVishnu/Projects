@@ -10,7 +10,7 @@ resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${local.cluster_name}-nodes"
   node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = module.vpc.private_subnets
+  subnet_ids      = local.private_subnet_ids
   instance_types  = local.instance_types
   capacity_type   = local.capacity_type
 

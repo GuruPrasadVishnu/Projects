@@ -1,11 +1,6 @@
 # IAM Roles and Policies for EKS
 # TODO: Add more granular policies when we need them
 
-locals {
-  # Moving this here since it's mainly used for IAM naming
-  cluster_name = "ms-platform-eks"
-}
-
 # Cluster role - keeping it simple for now
 resource "aws_iam_role" "eks_cluster" {
   name = "${local.cluster_name}-role"

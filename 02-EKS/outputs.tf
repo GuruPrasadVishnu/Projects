@@ -1,19 +1,19 @@
-# Infrastructure outputs
+# Infrastructure outputs (referencing VPC from networking layer)
 output "vpc_id" {
-  value = module.vpc.vpc_id
+  value = local.vpc_id
 }
 
 output "private_subnet_ids" {
-  value = module.vpc.private_subnets
+  value = local.private_subnet_ids
 }
 
 output "public_subnet_ids" {
-  value = module.vpc.public_subnets
+  value = local.public_subnet_ids
 }
 
 output "nat_public_ips" {
   description = "Public IPs of the NAT gateways for allowlisting"
-  value       = module.vpc.nat_public_ips
+  value       = local.nat_public_ips
 }
 
 # EKS cluster outputs

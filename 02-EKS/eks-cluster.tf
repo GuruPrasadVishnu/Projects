@@ -4,7 +4,7 @@
 resource "aws_security_group" "eks_cluster" {
   name        = "${local.cluster_name}-cluster-sg"
   description = "Security group for EKS cluster control plane"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = local.vpc_id
 
   # Outbound all
   egress {
@@ -41,7 +41,7 @@ resource "aws_eks_cluster" "main" {
 
   vpc_config {
     security_group_ids = [aws_security_group.eks_cluster.id]
-    subnet_ids         = module.vpc.private_subnets
+    subnet_ids         = local.private_subnet_ids
     
     # Keeping endpoint private for now - we can expose it later if needed
     endpoint_private_access = true
